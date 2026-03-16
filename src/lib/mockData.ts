@@ -3,14 +3,14 @@ import type { Deck, Card } from '../types/index';
 export const MOCK_DECKS: Deck[] = [
     {
         id: 'deck-1',
-        user_id: 'user-1',
+        user_id: 'user-2',
         title: 'React Fundamentals',
         description: 'Core concepts of React.js including hooks, components, and state management.',
         created_at: new Date().toISOString(),
     },
     {
         id: 'deck-2',
-        user_id: 'user-1',
+        user_id: 'user-2',
         title: 'TypeScript Masterclass',
         description: 'Advanced TypeScript features, utility types, and generic programming.',
         created_at: new Date().toISOString(),

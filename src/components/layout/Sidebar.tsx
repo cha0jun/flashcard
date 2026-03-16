@@ -2,7 +2,6 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { LayoutDashboard, BookOpen, PlusCircle, Settings, LogOut, Play } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
-
 const navItems = [
     { label: 'Dashboard', icon: LayoutDashboard, to: '/' },
     { label: 'Study', icon: Play, to: '/decks/$deckId/study', params: { deckId: 'all' } },
@@ -19,20 +18,22 @@ export function Sidebar() {
     }
 
     return (
-        <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200">
+        <aside className="hidden md:flex flex-col w-64 bg-white border-r border-paper-200 font-sans z-10 shadow-sm">
             <div className="p-6">
-                <h1 className="text-xl font-bold text-brand-700">Axonote</h1>
+                <Link to="/">
+                    <h1 className="text-2xl font-bold tracking-tight text-ink-900 inline-block">Axonote</h1>
+                </Link>
             </div>
 
-            <nav className="flex-1 px-4 space-y-1">
+            <nav className="flex-1 px-4 space-y-1.5 mt-2">
                 {navItems.map((item) => (
                     <Link
                         key={item.to}
                         to={item.to}
                         activeProps={{
-                            className: 'bg-brand-50 text-brand-700 font-semibold',
+                            className: 'bg-brand-50 text-brand-600 font-medium',
                         }}
-                        className="flex items-center px-3 py-2 text-sm text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
+                        className="flex items-center px-3 py-2.5 text-ink-500 font-medium hover:bg-paper-100 transition-colors rounded-xl text-sm"
                     >
                         <item.icon className="w-5 h-5 mr-3" />
                         {item.label}
@@ -40,17 +41,17 @@ export function Sidebar() {
                 ))}
             </nav>
 
-            <div className="p-4 border-t border-slate-200">
-                <button className="flex items-center w-full px-3 py-2 text-sm text-slate-600 rounded-lg hover:bg-slate-50 transition-colors">
-                    <Settings className="w-5 h-5 mr-3" />
+            <div className="p-4 border-t border-paper-200 mt-auto">
+                <button className="flex items-center w-full px-3 py-2.5 text-ink-500 font-medium hover:bg-paper-100 transition-colors rounded-xl text-sm mb-1 text-left">
+                    <Settings className="w-5 h-5 mr-3 text-ink-400" />
                     Settings
                 </button>
                 <button
                     onClick={handleLogout}
-                    className="flex items-center w-full px-3 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 transition-colors mt-1"
+                    className="flex items-center w-full px-3 py-2.5 text-ink-500 font-medium hover:bg-red-50 hover:text-red-600 transition-colors rounded-xl text-sm text-left"
                 >
                     <LogOut className="w-5 h-5 mr-3" />
-                    Logout
+                    Sign Out
                 </button>
             </div>
         </aside>

@@ -9,10 +9,16 @@ export function useAuth() {
 
     useEffect(() => {
         // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+            if (error) {
+                console.error("Auth session error:", error);
+            }
             setSession(session)
             setUser(session?.user ?? null)
             setLoading(false)
+        }).catch((err) => {
+            console.error("Failed to get session:", err);
+            setLoading(false);
         })
 
         // Listen for changes
