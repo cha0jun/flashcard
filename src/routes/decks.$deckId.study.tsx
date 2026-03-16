@@ -1,6 +1,9 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, useEffect, useCallback } from 'react'
-import { MOCK_CARDS, MOCK_DECKS } from '../lib/mockData'
+import { useQuery } from '@tanstack/react-query'
+import { fetchCards, fetchAllUserCards, fetchDecks, insertReviewLog, upsertSRSMetadata } from '../lib/db'
+import { computeNextSRS } from '../lib/srs'
+import { supabase } from '../lib/supabase'
 import { CardStack } from '../components/CardStack'
 import { ChevronLeft, CheckCircle2, Flame, Zap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -10,57 +13,107 @@ export const Route = createFileRoute('/decks/$deckId/study')({
     component: StudyPage,
 })
 
-type Rating = 1 | 2 | 3 | 4; // Again, Hard, Good, Easy
+type Rating = 1 | 2 | 3 | 4
 
 function StudyPage() {
     const { deckId } = Route.useParams()
     const navigate = useNavigate()
-
-    // Select cards based on deckId
     const isAllDecks = deckId === 'all'
-    const deck = isAllDecks
-        ? { title: 'All Decks', id: 'all' }
-        : MOCK_DECKS.find(d => d.id === deckId)
 
-    const initialCards = isAllDecks
-        ? MOCK_CARDS
-        : MOCK_CARDS.filter(c => c.deck_id === deckId)
+    const { data: authUser } = useQuery({
+        queryKey: ['auth-user'],
+        queryFn: async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            return user
+        },
+    })
 
-    const [queue, setQueue] = useState<Card[]>(initialCards)
+    // Fetch deck info
+    const { data: deckInfo } = useQuery({
+        queryKey: ['deck', deckId],
+        queryFn: async () => {
+            if (isAllDecks) return { id: 'all', title: 'All Decks', user_id: '', description: null }
+            const decks = await fetchDecks(authUser!.id)
+            return decks.find(d => d.id === deckId) ?? null
+        },
+        enabled: !!authUser,
+    })
+
+    // Fetch cards
+    const { data: loadedCards = [], isLoading } = useQuery({
+        queryKey: ['cards', deckId, authUser?.id],
+        queryFn: () => isAllDecks ? fetchAllUserCards(authUser!.id) : fetchCards(deckId),
+        enabled: !!authUser,
+    })
+
+    // Session state — initialised once cards are loaded
+    const [queue, setQueue] = useState<Card[]>([])
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isFinished, setIsFinished] = useState(false)
     const [isFlipped, setIsFlipped] = useState(false)
+    const [sessionStarted, setSessionStarted] = useState(false)
+
+    // Track per-card first-attempt rating for accuracy (only counts first attempt)
+    const [firstAttempts, setFirstAttempts] = useState<Map<string, Rating>>(new Map())
+    // Track card start time for response_time_ms
+    const [cardStartTime, setCardStartTime] = useState<number>(Date.now())
+
+    useEffect(() => {
+        if (loadedCards.length > 0 && !sessionStarted) {
+            setQueue(loadedCards)
+            setSessionStarted(true)
+            setCardStartTime(Date.now())
+        }
+    }, [loadedCards, sessionStarted])
 
     const currentCard = queue[currentIndex]
 
-    const handleRating = useCallback((rating: Rating) => {
-        if (!currentCard) return
+    const handleRating = useCallback(async (rating: Rating) => {
+        if (!currentCard || !authUser) return
 
-        console.log(`Card ${currentCard.id} rated: ${rating}`)
+        const responseTimeMs = Date.now() - cardStartTime
 
-        // SRS Logic Enhancement
-        if (rating === 1) { // Again
+        // Track first attempt for accuracy calculation
+        setFirstAttempts(prev => {
+            if (!prev.has(currentCard.id)) {
+                const next = new Map(prev)
+                next.set(currentCard.id, rating)
+                return next
+            }
+            return prev
+        })
+
+        // Persist review log (fire-and-forget, don't block UI)
+        insertReviewLog({ card_id: currentCard.id, rating, response_time_ms: responseTimeMs }, authUser.id)
+            .catch(console.error)
+
+        // Update SRS metadata
+        upsertSRSMetadata(computeNextSRS(null, currentCard.id, rating))
+            .catch(console.error)
+
+        // Queue management
+        if (rating === 1) {
             setQueue(prev => [...prev, currentCard])
         }
 
         setIsFlipped(false)
+        setCardStartTime(Date.now())
+
         if (currentIndex < queue.length - 1) {
             setCurrentIndex(prev => prev + 1)
         } else {
             setIsFinished(true)
         }
-    }, [currentCard, currentIndex, queue.length])
+    }, [currentCard, currentIndex, queue.length, authUser, cardStartTime])
 
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (isFinished) return
-
             if (e.code === 'Space') {
                 e.preventDefault()
                 setIsFlipped(prev => !prev)
             }
-
             if (isFlipped) {
                 if (e.key === '1') handleRating(1)
                 if (e.key === '2') handleRating(2)
@@ -72,9 +125,33 @@ function StudyPage() {
         return () => window.removeEventListener('keydown', handleKeyDown)
     }, [isFlipped, isFinished, handleRating])
 
-    if (!deck) {
+    if (isLoading || !sessionStarted) {
+        return (
+            <div className="flex items-center justify-center h-[60vh]">
+                <div className="w-8 h-8 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
+            </div>
+        )
+    }
+
+    if (!deckInfo) {
         return <div className="p-8 text-center text-slate-500">Deck not found.</div>
     }
+
+    if (loadedCards.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
+                <p className="text-xl font-semibold text-slate-700">No cards in this deck yet.</p>
+                <p className="text-slate-400">Create some cards to start studying.</p>
+            </div>
+        )
+    }
+
+    // Compute session accuracy from first attempts
+    const totalFirstAttempts = firstAttempts.size
+    const goodFirstAttempts = Array.from(firstAttempts.values()).filter(r => r >= 3).length
+    const accuracy = totalFirstAttempts > 0
+        ? Math.round((goodFirstAttempts / totalFirstAttempts) * 100)
+        : 0
 
     if (isFinished) {
         return (
@@ -90,22 +167,22 @@ function StudyPage() {
                         </div>
                     </div>
                     <h2 className="text-3xl font-bold text-slate-900">Session Complete!</h2>
-                    <p className="text-slate-500 text-lg">You've successfully reviewed all cards in <strong>{deck.title}</strong>.</p>
+                    <p className="text-slate-500 text-lg">You've successfully reviewed all cards in <strong>{deckInfo.title}</strong>.</p>
 
                     <div className="grid grid-cols-3 gap-4 py-8">
                         <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
                             <Flame className="w-6 h-6 text-orange-500 mx-auto mb-2" />
-                            <div className="text-2xl font-bold text-slate-900">7</div>
-                            <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">Streak</div>
-                        </div>
-                        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                            <Zap className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
-                            <div className="text-2xl font-bold text-slate-900">100%</div>
+                            <div className="text-2xl font-bold text-slate-900">{accuracy}%</div>
                             <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">Accuracy</div>
                         </div>
                         <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                            <Zap className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
+                            <div className="text-2xl font-bold text-slate-900">{goodFirstAttempts}</div>
+                            <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">Correct</div>
+                        </div>
+                        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
                             <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
-                            <div className="text-2xl font-bold text-slate-900">{initialCards.length}</div>
+                            <div className="text-2xl font-bold text-slate-900">{loadedCards.length}</div>
                             <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">Total</div>
                         </div>
                     </div>
@@ -134,7 +211,7 @@ function StudyPage() {
                     Exit
                 </button>
                 <div className="text-center flex-1">
-                    <h1 className="text-sm font-bold text-slate-900 uppercase tracking-widest">{deck.title}</h1>
+                    <h1 className="text-sm font-bold text-slate-900 uppercase tracking-widest">{deckInfo.title}</h1>
                 </div>
                 <div className="text-sm font-bold text-slate-400 w-20 text-right">
                     {currentIndex + 1} / {queue.length}
