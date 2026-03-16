@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as IndexRouteImport } from './routes/index'
@@ -19,6 +20,11 @@ import { Route as DecksDeckIdStudyRouteImport } from './routes/decks.$deckId.stu
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/decks': typeof DecksIndexRoute
   '/decks/$deckId/study': typeof DecksDeckIdStudyRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/decks': typeof DecksIndexRoute
   '/decks/$deckId/study': typeof DecksDeckIdStudyRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/create': typeof CreateRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/decks/': typeof DecksIndexRoute
   '/decks/$deckId/study': typeof DecksDeckIdStudyRoute
@@ -78,16 +87,25 @@ export interface FileRouteTypes {
     | '/'
     | '/create'
     | '/login'
+    | '/settings'
     | '/signup'
     | '/decks'
     | '/decks/$deckId/study'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/create' | '/login' | '/signup' | '/decks' | '/decks/$deckId/study'
+  to:
+    | '/'
+    | '/create'
+    | '/decks'
+    | '/login'
+    | '/settings'
+    | '/signup'
+    | '/decks/$deckId/study'
   id:
     | '__root__'
     | '/'
     | '/create'
     | '/login'
+    | '/settings'
     | '/signup'
     | '/decks/'
     | '/decks/$deckId/study'
@@ -97,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CreateRoute: typeof CreateRoute
   LoginRoute: typeof LoginRoute
+  SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   DecksIndexRoute: typeof DecksIndexRoute
 }
@@ -108,6 +127,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -152,6 +178,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CreateRoute: CreateRoute,
   LoginRoute: LoginRoute,
+  SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   DecksIndexRoute: DecksIndexRoute,
 }
