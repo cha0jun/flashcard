@@ -1,0 +1,23 @@
+{
+  "skill_name": "solid-kiss",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Build a Python notification system that can send notifications via email and Slack, with support for adding more channels later.",
+      "expected_output": "Creates separate classes for each notification channel using a Protocol/interface for abstraction (OCP, DIP). Each class has a single responsibility (SRP). Dependencies are injected via constructor. Functions are short and focused. No unnecessary abstraction layers.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Refactor this Python class:\n\n```python\nimport sqlite3\n\nclass UserManager:\n    def __init__(self):\n        self.db = sqlite3.connect(\"users.db\")\n    def create_user(self, name, email):\n        self.db.execute(\"INSERT INTO users VALUES (?, ?)\", (name, email))\n        self.db.commit()\n        msg = f\"Welcome {name}!\"\n        import smtplib\n        server = smtplib.SMTP(\"smtp.example.com\")\n        server.sendmail(\"noreply@example.com\", email, msg)\n        server.quit()\n        print(f\"User {name} created and welcome email sent\")\n    def get_user(self, name):\n        return self.db.execute(\"SELECT * FROM users WHERE name=?\", (name,)).fetchone()\n    def delete_user(self, name):\n        user = self.get_user(name)\n        if user:\n            self.db.execute(\"DELETE FROM users WHERE name=?\", (name,))\n            self.db.commit()\n            msg = f\"Your account has been deleted\"\n            import smtplib\n            server = smtplib.SMTP(\"smtp.example.com\")\n            server.sendmail(\"noreply@example.com\", user[1], msg)\n            server.quit()\n            print(f\"User {name} deleted\")\n```",
+      "expected_output": "Identifies SRP violation (data access + email + logging in one class). Splits into separate repository, notifier, and service classes. Injects dependencies via constructor (DIP). Does NOT create unnecessary abstract base classes (KISS). Explains each refactoring step referencing the principle violated. Preserves external behavior.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Create a function that reads a JSON config file and returns its contents as a dictionary.",
+      "expected_output": "Writes a single short function (under 15 lines). Uses json.load directly. Does NOT create interfaces, factories, or abstract classes. Does NOT add caching, plugin systems, or validation frameworks. May include basic error handling only.",
+      "files": []
+    }
+  ]
+}
