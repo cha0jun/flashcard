@@ -66,6 +66,31 @@ export async function getDueCards(supabase: Client, deckId: string): Promise<Car
 		.map((c) => ({ ...c, srs: srsMap.get(c.id)! }));
 }
 
+export async function getAllCardsWithSrs(supabase: Client, deckId: string): Promise<CardWithSrs[]> {
+	const { data: cards, error: cardsError } = await supabase
+		.from('cards')
+		.select('*')
+		.eq('deck_id', deckId);
+	if (cardsError) throw cardsError;
+
+	const typedCards = cards as Card[];
+	if (!typedCards.length) return [];
+
+	const cardIds = typedCards.map((c) => c.id);
+	const { data: srsData, error: srsError } = await supabase
+		.from('card_srs_metadata')
+		.select('*')
+		.in('card_id', cardIds);
+	if (srsError) throw srsError;
+
+	const typedSrs = srsData as CardSrsMetadata[];
+	const srsMap = new Map(typedSrs.map((s) => [s.card_id, s]));
+
+	return typedCards
+		.filter((c) => srsMap.has(c.id))
+		.map((c) => ({ ...c, srs: srsMap.get(c.id)! }));
+}
+
 export async function getCardCount(supabase: Client, deckId: string): Promise<number> {
 	const { count, error } = await supabase
 		.from('cards')
@@ -123,6 +148,59 @@ export async function reviewCard(
 		.from('card_srs_metadata')
 		.upsert({ card_id: cardId, ...nextSrs });
 	if (srsError) throw srsError;
+}
+
+export async function getCardsForDeck(supabase: Client, deckId: string): Promise<Card[]> {
+	const { data, error } = await supabase
+		.from('cards')
+		.select('*')
+		.eq('deck_id', deckId)
+		.order('created_at', { ascending: false });
+	if (error) throw error;
+	return data as Card[];
+}
+
+export async function createCard(
+	supabase: Client,
+	userId: string,
+	deckId: string,
+	front: string,
+	back: string
+): Promise<Card> {
+	const { data, error } = await supabase
+		.from('cards')
+		.insert({ user_id: userId, deck_id: deckId, front, back })
+		.select()
+		.single();
+	if (error) throw error;
+
+	const card = data as Card;
+
+	const { error: srsError } = await supabase.from('card_srs_metadata').insert({
+		card_id: card.id,
+		ease_factor: 2.5,
+		interval_days: 0,
+		repetitions: 0,
+		next_review_at: new Date().toISOString()
+	});
+	if (srsError) throw srsError;
+
+	return card;
+}
+
+export async function updateCard(
+	supabase: Client,
+	cardId: string,
+	front: string,
+	back: string
+): Promise<void> {
+	const { error } = await supabase.from('cards').update({ front, back }).eq('id', cardId);
+	if (error) throw error;
+}
+
+export async function deleteCard(supabase: Client, cardId: string): Promise<void> {
+	const { error } = await supabase.from('cards').delete().eq('id', cardId);
+	if (error) throw error;
 }
 
 export async function getDashboardStats(supabase: Client, userId: string) {

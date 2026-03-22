@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Layers, BookOpen, Trash2 } from 'lucide-svelte';
+	import { Layers, BookOpen, Trash2, Settings2, RotateCcw } from 'lucide-svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { deleteDeck } from '$lib/db';
 
@@ -51,19 +51,38 @@
 						<span>{deck.dueCount} due</span>
 					</div>
 
-					{#if deck.dueCount > 0}
+					<div class="flex gap-2">
+						{#if deck.cardCount > 0}
+							{#if deck.dueCount > 0}
+								<a
+									href="/decks/{deck.id}/study"
+									class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+								>
+									<BookOpen size={16} />
+									Study ({deck.dueCount})
+								</a>
+							{:else}
+								<a
+									href="/decks/{deck.id}/study"
+									class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200"
+								>
+									<RotateCcw size={16} />
+									Practice
+								</a>
+							{/if}
+						{:else}
+							<div class="flex-1 rounded-lg bg-gray-50 px-4 py-2 text-center text-sm text-gray-400">
+								No cards yet
+							</div>
+						{/if}
 						<a
-							href="/decks/{deck.id}/study"
-							class="flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+							href="/decks/{deck.id}/cards"
+							class="flex items-center justify-center rounded-lg bg-gray-100 px-3 py-2 text-gray-500 hover:bg-gray-200 hover:text-gray-700"
+							title="Manage cards"
 						>
-							<BookOpen size={16} />
-							Study ({deck.dueCount})
+							<Settings2 size={16} />
 						</a>
-					{:else}
-						<div class="rounded-lg bg-gray-50 px-4 py-2 text-center text-sm text-gray-400">
-							No cards due
-						</div>
-					{/if}
+					</div>
 				</div>
 			{/each}
 		</div>

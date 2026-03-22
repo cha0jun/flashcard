@@ -19,7 +19,6 @@
 	let progress = $derived(currentIndex / queue.length);
 
 	const ratingLabels = [
-		{ value: 1, label: 'Again', color: 'bg-red-100 text-red-700 hover:bg-red-200' },
 		{ value: 2, label: 'Hard', color: 'bg-orange-100 text-orange-700 hover:bg-orange-200' },
 		{ value: 3, label: 'Good', color: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' },
 		{ value: 4, label: 'Easy', color: 'bg-blue-100 text-blue-700 hover:bg-blue-200' }
@@ -37,11 +36,6 @@
 
 		// Fire review in background
 		reviewCard(data.supabase, data.user.id, currentCard.id, rating, responseTime, nextSrs);
-
-		// Re-queue failed cards at the end
-		if (rating === 1) {
-			queue = [...queue, currentCard];
-		}
 
 		advance();
 	}
@@ -61,7 +55,7 @@
 		if (e.key === ' ') {
 			e.preventDefault();
 			handleFlip();
-		} else if (flipped && e.key >= '1' && e.key <= '4') {
+		} else if (flipped && e.key >= '2' && e.key <= '4') {
 			handleRate(parseInt(e.key));
 		}
 	}
@@ -77,6 +71,13 @@
 		<span class="text-sm text-gray-500">{currentIndex + 1}/{queue.length}</span>
 	</div>
 
+	<!-- Practice mode banner -->
+	{#if data.mode === 'practice'}
+		<div class="mb-4 rounded-lg bg-amber-50 px-4 py-2 text-center text-sm text-amber-700">
+			No cards due — practicing all cards
+		</div>
+	{/if}
+
 	<!-- Progress bar -->
 	<div class="mb-6 h-1.5 overflow-hidden rounded-full bg-gray-200">
 		<div
@@ -89,33 +90,30 @@
 	{#if currentCard}
 		<div
 			use:swipeable={{
-				onSwipe: (dir) => handleRate(dir === 'right' ? 3 : 1),
+				onSwipe: (dir) => handleRate(dir === 'right' ? 4 : 2),
 				onDrag: (offset) => (dragOffset = offset),
-				onRelease: () => (dragOffset = 0)
+				onRelease: () => (dragOffset = 0),
+				onTap: () => handleFlip()
 			}}
 		>
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div onclick={handleFlip}>
-				<Flashcard
-					front={currentCard.front}
-					back={currentCard.back}
-					{flipped}
-					{dragOffset}
-				/>
-			</div>
+			<Flashcard
+				front={currentCard.front}
+				back={currentCard.back}
+				{flipped}
+				{dragOffset}
+			/>
 		</div>
 
 		<!-- Swipe hints -->
 		<div class="mt-3 flex justify-between text-xs text-gray-400">
-			<span>&larr; Again</span>
+			<span>&larr; Hard</span>
 			<span>Tap to flip</span>
-			<span>Good &rarr;</span>
+			<span>Easy &rarr;</span>
 		</div>
 
 		<!-- Rating buttons (shown after flip) -->
 		{#if flipped}
-			<div class="mt-6 grid grid-cols-4 gap-2">
+			<div class="mt-6 grid grid-cols-3 gap-2">
 				{#each ratingLabels as r}
 					<button
 						onclick={() => handleRate(r.value)}
@@ -129,7 +127,7 @@
 
 		<!-- Keyboard hint -->
 		<p class="mt-4 text-center text-xs text-gray-400">
-			Space to flip &middot; 1-4 to rate
+			Space to flip &middot; 2-4 to rate
 		</p>
 	{/if}
 </div>

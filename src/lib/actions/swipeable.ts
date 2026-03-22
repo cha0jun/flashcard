@@ -9,6 +9,7 @@ interface SwipeableOptions {
 	onSwipe: (direction: SwipeDirection) => void;
 	onDrag?: (offsetX: number) => void;
 	onRelease?: () => void;
+	onTap?: () => void;
 }
 
 export function swipeable(node: HTMLElement, options: SwipeableOptions) {
@@ -16,6 +17,7 @@ export function swipeable(node: HTMLElement, options: SwipeableOptions) {
 	let currentX = 0;
 	let dragging = false;
 	const threshold = options.threshold ?? 100;
+	const tapThreshold = 5;
 
 	function onPointerDown(e: PointerEvent) {
 		dragging = true;
@@ -36,6 +38,9 @@ export function swipeable(node: HTMLElement, options: SwipeableOptions) {
 
 		if (Math.abs(currentX) > threshold) {
 			options.onSwipe(currentX > 0 ? 'right' : 'left');
+		} else if (Math.abs(currentX) < tapThreshold) {
+			options.onTap?.();
+			options.onRelease?.();
 		} else {
 			options.onRelease?.();
 		}
