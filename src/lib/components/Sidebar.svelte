@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { LayoutDashboard, Layers, Plus, Settings, LogOut } from 'lucide-svelte';
+	import { LayoutDashboard, Layers, Plus, Sparkles, Settings, LogOut } from 'lucide-svelte';
 	import type { SupabaseClient } from '@supabase/supabase-js';
 
 	let { supabase }: { supabase: SupabaseClient } = $props();
@@ -10,6 +10,7 @@
 		{ href: '/', label: 'Dashboard', icon: LayoutDashboard },
 		{ href: '/decks', label: 'Decks', icon: Layers },
 		{ href: '/create', label: 'New Deck', icon: Plus },
+		{ href: '/generate', label: 'AI Generate', icon: Sparkles },
 		{ href: '/settings', label: 'Settings', icon: Settings }
 	];
 
