@@ -20,6 +20,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		throw error(400, 'Prompt or document required');
 	}
 
+	const cardCount = cardCountStr ? parseInt(cardCountStr, 10) : 10;
+	if (cardCount < 1 || cardCount > 15) {
+		throw error(400, 'Card count must be between 1 and 15');
+	}
+
 	let documentText: string | undefined;
 	if (file && file.size > 0) {
 		documentText = await extractText(file);
@@ -29,7 +34,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		prompt: prompt || 'Generate flashcards from the uploaded document.',
 		documentText,
 		existingDeckTitle: deckTitle || undefined,
-		cardCount: cardCountStr ? parseInt(cardCountStr, 10) : undefined
+		cardCount
 	};
 
 	const provider = getAIProvider();

@@ -19,6 +19,7 @@
 	let progress = $derived(currentIndex / queue.length);
 
 	const ratingLabels = [
+		{ value: 1, label: 'Again', color: 'bg-red-100 text-red-700 hover:bg-red-200' },
 		{ value: 2, label: 'Hard', color: 'bg-orange-100 text-orange-700 hover:bg-orange-200' },
 		{ value: 3, label: 'Good', color: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' },
 		{ value: 4, label: 'Easy', color: 'bg-blue-100 text-blue-700 hover:bg-blue-200' }
@@ -55,7 +56,7 @@
 		if (e.key === ' ') {
 			e.preventDefault();
 			handleFlip();
-		} else if (flipped && e.key >= '2' && e.key <= '4') {
+		} else if (flipped && e.key >= '1' && e.key <= '4') {
 			handleRate(parseInt(e.key));
 		}
 	}
@@ -113,7 +114,7 @@
 
 		<!-- Rating buttons (shown after flip) -->
 		{#if flipped}
-			<div class="mt-6 grid grid-cols-3 gap-2">
+			<div class="mt-6 grid grid-cols-4 gap-2">
 				{#each ratingLabels as r}
 					<button
 						onclick={() => handleRate(r.value)}
@@ -127,7 +128,7 @@
 
 		<!-- Keyboard hint -->
 		<p class="mt-4 text-center text-xs text-gray-400">
-			Space to flip &middot; 2-4 to rate
+			Space to flip &middot; 1-4 to rate
 		</p>
 	{/if}
 </div>

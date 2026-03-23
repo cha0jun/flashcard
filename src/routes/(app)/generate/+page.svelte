@@ -7,7 +7,7 @@
 	let mode = $state<'new' | 'existing'>('new');
 	let prompt = $state('');
 	let file = $state<File | null>(null);
-	let cardCount = $state(20);
+	let cardCount = $state(10);
 	let selectedDeckId = $state(data.decks[0]?.id ?? '');
 
 	let generatedCards = $state<{ front: string; back: string }[]>([]);
@@ -28,6 +28,11 @@
 	async function handleGenerate() {
 		if (!prompt && !file) {
 			errorMsg = 'Enter a topic or upload a document.';
+			return;
+		}
+
+		if (cardCount < 1 || cardCount > 15) {
+			errorMsg = 'Card count must be between 1 and 15.';
 			return;
 		}
 
@@ -248,21 +253,17 @@
 		<!-- Card Count -->
 		<div class="mb-4">
 			<label for="card-count" class="mb-1 block text-sm font-medium text-gray-600"
-				>Number of cards: {cardCount}</label
+				>Number of cards</label
 			>
 			<input
 				id="card-count"
-				type="range"
+				type="number"
 				bind:value={cardCount}
-				min="5"
-				max="50"
-				step="5"
-				class="w-full accent-brand-600"
+				min="1"
+				max="15"
+				class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none"
 			/>
-			<div class="flex justify-between text-xs text-gray-400">
-				<span>5</span>
-				<span>50</span>
-			</div>
+			<p class="mt-1 text-xs text-gray-400">Maximum 15 cards allowed per generation</p>
 		</div>
 
 		{#if errorMsg}
